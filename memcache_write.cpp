@@ -102,6 +102,12 @@ size_t memcache_wrt::write(void *buffer, off_t file_offset, size_t data_size) {
 		if(idx >= block_count >> 1)
 		{
 			//Remember to update the file_offset,buffer,idx,
+
+			scif_vwriteto(this->server_epd, buffer, offset_infile, file_offset,SCIF_RMA_ORDERED);
+			file_offset+=offset_infile;
+			idx=0;
+			buffer+=offset_infile;
+
 		}
 
 		//Mark the file block before writing it.
