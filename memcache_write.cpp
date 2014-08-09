@@ -49,7 +49,7 @@ memcache_wrt::memcache_wrt(size_t block_size, size_t cache_size, uint16_t node,
 			SCIF_RECV_BLOCK);
 
 	//Value the cache_offset
-
+	this->cache_offset = (char *) this-> cache;														//if it's right
 
 }
 
@@ -72,7 +72,7 @@ size_t memcache_wrt::write(void *buffer, off_t file_offset, size_t data_size) {
 		//Calculate cache_block and fetch the block if it is not cached.
 		off_t cache_block = this->cache_offset >> this->block_hbit;
 		if (!this->cached(cache_block))
-			this->async_fetch(cache_block,file_offset+offset_infile);
+			this->async_fetch(cache_block, file_offset + offset_infile);
 
 		//Calculate the file block
 		off_t file_block = this->cfmap[cache_block];
@@ -85,10 +85,10 @@ size_t memcache_wrt::write(void *buffer, off_t file_offset, size_t data_size) {
 		size_t cpy = min_size(data_size, this->block_size - off_inblock);
 
 		//Fetch next block if this block is half read.
-		// if (off_inblock + cpy > (this->block_size >> 1)
-		// 		&& !this->cached(cache_block + 1)) {
-		// 	this->async_fetch(cache_block + 1,);
-		// }
+		 if (off_inblock + cpy > (this->block_size >> 1)
+		 		&& !this->cached(cache_block + 1)) {
+		 	this->async_fetch(cache_block + 1, file_offset + offset_infile + cpy);				//if it's right
+		 }
 
 		//Wait this block ready if it is fetching.
 		if (this->cache_flags[cache_block] & MEMCACHE_FETCHING)
@@ -101,17 +101,18 @@ size_t memcache_wrt::write(void *buffer, off_t file_offset, size_t data_size) {
 		off_t off_incache = (cache_block << this->block_hbit) + off_inblock;
 		memcpy(buffer + offset_infile, this->cache + off_incache, cpy);
 		offset_infile += cpy;
-		cache_offset = (cache_offset + cpy)% this->cache_size;
+		cache_offset = (cache_offset + cpy) % this->cache_size;
 		data_size -= cpy;
 		buffer += cpy;
 		sum += cpy;
 
+		//Judge if it is qualified to write back
 		if(idx >= block_count >> 1)
 		{
 			//Write the buffer back to the host
 			scif_vwriteto(this->server_epd, buffer, offset_infile, file_offset,SCIF_RMA_ORDERED);
 
-			//update the file_offset,buffer,idx,
+			//update the file_offset,buffer and idx,
 			file_offset += offset_infile;
 			idx = 0;
 			buffer += offset_infile;
