@@ -130,10 +130,9 @@ bool memcache_wrt::cached(off_t cache_block_no) {
 
 void memcache_wrt::async_fetch(off_t cache_block, off_t file_offset) {
 	if (this->e_free()
-			&& (file_block_no << this->block_hbit) < this->file_size)
-	{
+			&& (file_block_no << this->block_hbit) < this->file_size){
 		//Find a block to use.
-		off_t file_block = this->find(file_offset);
+		off_t file_block = this -> find(file_offset);
 
 		//Fill a request and send the request.
 		SCIF_DATA_REQUEST req;
