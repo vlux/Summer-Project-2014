@@ -1,8 +1,8 @@
 /*
- * memcache.cpp
+ * memcache_write.cpp
  *
- *  Created on: Jul 24, 2014
- *      Author: duanye
+ *  Created on: Aug 9, 2014
+ *      Author: Xuanwu Yue
  */
 
 #include "memcache_write.h"
@@ -56,6 +56,7 @@ size_t memcache_wrt::write(void *buffer, off_t file_offset, size_t data_size) {
 	//Return value.
 	size_t sum = 0;
 
+	//Variable to calculate the number of cache blocks to write
 	size_t idx = 0;
 
 	//Variable to remember the offset in file to send to the buffer
@@ -86,11 +87,12 @@ size_t memcache_wrt::write(void *buffer, off_t file_offset, size_t data_size) {
 		if (this->cache_flags[cache_block] & MEMCACHE_FETCHING)
 			this->sync_block(cache_block);
 
+		//Plus the number of cache block to write
 		idx++;
 
 		//Copy data and update pointers.
 		off_t off_incache = (cache_block << this->block_hbit) + off_inblock;
-		memcpy(buffer, this->cache + off_incache, cpy);
+		memcpy(buffer + offset_infile, this->cache + off_incache, cpy);
 		offset_infile += cpy;
 		cache_offset += cpy;
 		data_size -= cpy;
@@ -99,7 +101,7 @@ size_t memcache_wrt::write(void *buffer, off_t file_offset, size_t data_size) {
 
 		if(idx >= block_count >> 1)
 		{
-			//Remember to update the file_offset
+			//Remember to update the file_offset,buffer,idx,
 		}
 
 		//Mark the file block before writing it.
