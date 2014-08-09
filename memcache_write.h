@@ -58,6 +58,9 @@ public:
     //Variables for remember the position of pointer in cache
     off_t cache_offset;
 
+	//Variables for remember the size of cache
+	size_t cache_size;
+
 };
 
 #endif /* MEMCACHE_WRITE_H_ */
