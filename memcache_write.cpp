@@ -152,7 +152,7 @@ void memcache_wrt::async_fetch(off_t cache_block, off_t file_offset) {
 	}
 }
 
-void memcache_wrt::sync_block(off_t cache_block_no) {				//check if it's right
+void memcache_wrt::sync_block(off_t cache_block_no) {									//if it should be changed
 	SCIF_DATA_REQUEST req;
 	//This function receives response message from server one by one.
 	//until the target block is fetched.
