@@ -28,12 +28,12 @@ public:
 	size_t write(void * buffer, off_t file_offset, size_t data_size);
 //private:
 	bool cached(off_t file_block_no);
-	void async_fetch(off_t file_block_no);
+	void async_fetch(off_t cache_block, off_t file_offset);
 	void sync_block(off_t cache_block_no);
 	void map_put(off_t file_block_no, off_t cache_block_no);
 	void mark(off_t cache_block_no, uint8_t flag);
 	void unmark(off_t cache_block_no, uint8_t flag);
-	off_t find();
+	off_t find(off_t file_offset);
 	bool e_free();
 
 	//Variables for caching data.

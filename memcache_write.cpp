@@ -47,6 +47,10 @@ memcache_wrt::memcache_wrt(size_t block_size, size_t cache_size, uint16_t node,
 	//Wait for server reporting file size.
 	scif_recv(this->server_epd, &this->file_size, sizeof(size_t),
 			SCIF_RECV_BLOCK);
+
+	//Value the cache_offset
+
+
 }
 
 size_t memcache_wrt::write(void *buffer, off_t file_offset, size_t data_size) {
@@ -73,6 +77,9 @@ size_t memcache_wrt::write(void *buffer, off_t file_offset, size_t data_size) {
 		//Calculate the file block
 		off_t file_block = this->cfmap[cache_block];
 
+		//Mark the cache block before writing it.
+		this->mark(cache_block, MEMCACHE_WRITING);
+
 		//Calculate the offset in block and data size to copy in this block.
 		off_t off_inblock = cache_offset & this->block_vbits;
 		size_t cpy = min_size(data_size, this->block_size - off_inblock);
@@ -87,8 +94,8 @@ size_t memcache_wrt::write(void *buffer, off_t file_offset, size_t data_size) {
 		if (this->cache_flags[cache_block] & MEMCACHE_FETCHING)
 			this->sync_block(cache_block);
 
-		//Plus the number of cache block to write
-		idx++;
+		//Plus the number of cache block to write back
+		idx += 1;
 
 		//Copy data and update pointers.
 		off_t off_incache = (cache_block << this->block_hbit) + off_inblock;
@@ -101,38 +108,38 @@ size_t memcache_wrt::write(void *buffer, off_t file_offset, size_t data_size) {
 
 		if(idx >= block_count >> 1)
 		{
-			//Remember to update the file_offset,buffer,idx,
-
+			//Write the buffer back to the host
 			scif_vwriteto(this->server_epd, buffer, offset_infile, file_offset,SCIF_RMA_ORDERED);
-			file_offset+=offset_infile;
-			idx=0;
-			buffer+=offset_infile;
 
-		}
+			//update the file_offset,buffer,idx,
+			file_offset += offset_infile;
+			idx = 0;
+			buffer += offset_infile;
 
-		//Mark the file block before writing it.
-		this->mark(file_block, MEMCACHE_WRITING);
+ 		}
+
 		//Unmark the block when writing is done.
-		this->unmark(file_block, MEMCACHE_WRITING);
+		this->unmark(cache_block, MEMCACHE_WRITING);
 	}
 	return sum;
 }
 
-bool memcache_wrt::cached(off_t file_block_no) {
-	return this->fcmap.find(file_block_no) != this->fcmap.end();
+bool memcache_wrt::cached(off_t cache_block_no) {
+	return this->cache_flags[cache_block_no] & MEMCACHE_WRITING;
 }
 
-void memcache_wrt::async_fetch(off_t file_block_no) {
+void memcache_wrt::async_fetch(off_t cache_block, off_t file_offset) {
 	if (this->e_free()
-			&& (file_block_no << this->block_hbit) < this->file_size) {
+			&& (file_block_no << this->block_hbit) < this->file_size)
+	{
 		//Find a block to use.
-		off_t cache_block = this->find();
+		off_t file_block = this->find(file_offset);
 
 		//Fill a request and send the request.
 		SCIF_DATA_REQUEST req;
-		req.type = 'r';
+		req.type = 'w';
 		req.data_size = this->block_size;
-		req.file_offset = file_block_no << this->block_hbit;
+		req.file_offset = file_block_<< this->block_hbit;
 		req.cache_offset = cache_block << this->block_hbit;
 		scif_send(this->server_epd, &req, sizeof(SCIF_DATA_REQUEST), 0);
 
@@ -141,11 +148,11 @@ void memcache_wrt::async_fetch(off_t file_block_no) {
 		this->unmark(cache_block, MEMCACHE_UNUSED);
 
 		//Update mapping.
-		this->map_put(file_block_no, cache_block);
+		this->map_put(file_block, cache_block);
 	}
 }
 
-void memcache_wrt::sync_block(off_t cache_block_no) {
+void memcache_wrt::sync_block(off_t cache_block_no) {				//check if it's right
 	SCIF_DATA_REQUEST req;
 	//This function receives response message from server one by one.
 	//until the target block is fetched.
@@ -193,11 +200,8 @@ void memcache_wrt::unmark(off_t cache_block_no, uint8_t flag) {
 	this->spin_count -= spo ^ spn;
 }
 
-off_t memcache_wrt::find() {
-	off_t p = rand64() % this->block_count;
-	while (this->cache_flags[p] & MEMCACHE_SPIN)
-		p = rand64() % this->block_count;
-	return p;
+off_t memcache_wrt::find(off_t file_offset) {
+	return file_offset >> this->block_hbit;
 }
 
 bool memcache_wrt::e_free() {
