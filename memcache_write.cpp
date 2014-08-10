@@ -125,9 +125,11 @@ size_t memcache_wrt::write(void *buffer, off_t file_offset, size_t data_size) {
 	return sum;
 }
 
+//Check if the cache block can be used to write
 bool memcache_wrt::cached(off_t cache_block_no) {
 	return this->cache_flags[cache_block_no] & MEMCACHE_WRITING;
 }
+
 
 void memcache_wrt::async_fetch(off_t cache_block, off_t file_offset) {
 	if (this->e_free()
@@ -200,6 +202,7 @@ void memcache_wrt::unmark(off_t cache_block_no, uint8_t flag) {
 	this->spin_count -= spo ^ spn;
 }
 
+//Find the block that the pointer 'file_offset' points
 off_t memcache_wrt::find(off_t file_offset) {
 	return file_offset >> this->block_hbit;
 }
