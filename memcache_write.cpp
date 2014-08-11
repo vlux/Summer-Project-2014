@@ -49,7 +49,7 @@ memcache_wrt::memcache_wrt(size_t block_size, size_t cache_size, uint16_t node,
 			SCIF_RECV_BLOCK);
 
 	//Value the cache_offset
-	this->cache_offset = (char *) this-> cache;														//if it's right
+	this->cache_offset = (char *) this-> cache;											//if it's right
 
 }
 
@@ -66,7 +66,7 @@ size_t memcache_wrt::write(void *buffer, off_t file_offset, size_t data_size) {
 	//Variable to remember the offset in file to send to the buffer
 	size_t offset_infile = 0;
 
-	//Copy data to buffer.
+	//Copy data to buffer to write back
 	while (data_size > 0) {
 
 		//Calculate cache_block and fetch the block if it is not cached.
@@ -130,7 +130,6 @@ bool memcache_wrt::cached(off_t cache_block_no) {
 	return this->cache_flags[cache_block_no] & MEMCACHE_WRITING;
 }
 
-
 void memcache_wrt::async_fetch(off_t cache_block, off_t file_offset) {
 	if (this->e_free()
 			&& (file_block_no << this->block_hbit) < this->file_size){
@@ -166,6 +165,7 @@ void memcache_wrt::sync_block(off_t cache_block_no) {									//if it should be 
 	}
 }
 
+//Map the cache block and the file block
 void memcache_wrt::map_put(off_t file_block_no, off_t cache_block_no) {
 	//Unmap last file block if exists.
 	if (!(this->cache_flags[cache_block_no] & MEMCACHE_UNUSED)) {
