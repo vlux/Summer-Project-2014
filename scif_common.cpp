@@ -22,7 +22,6 @@ scif_epd_t scif_connect_s(uint16_t node, uint16_t port){
 
 	scif_connect(ret, &server);
 
-
 	return ret;
 }
 
@@ -102,4 +101,5 @@ size_t max_size(size_t a, size_t b){
 int64_t rand64(){
 	return (((int64_t)rand()) << 32) | rand();
 }
+
 #endif /* SCIF_HELPER_H_ */
